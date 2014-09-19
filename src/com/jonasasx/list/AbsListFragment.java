@@ -4,9 +4,10 @@ import uk.co.senab.actionbarpulltorefresh.extras.actionbarsherlock.PullToRefresh
 import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
 import uk.co.senab.actionbarpulltorefresh.library.Options;
 import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
-import android.annotation.SuppressLint;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.SparseBooleanArray;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +19,7 @@ import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -27,49 +29,74 @@ import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.ActionMode;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuItem;
+import com.jonasasx.list.delegates.AbsListViewDelegate;
+import com.jonasasx.list.views.GridView;
 import com.jonasasx.list.views.HeaderFooterAbsListView;
 import com.jonasasx.list.views.ListLineView;
 import com.jonasasx.list.views.ListView;
 
 abstract public class AbsListFragment extends SherlockFragment implements OnRefreshListener, OnScrollListener, OnItemLongClickListener, OnItemClickListener {
-	private HeaderFooterAbsListView	mCastedList;
-	private boolean					mFromBottom	= false;
-	private View					mFullEmptyContainer;
-	private TextView				mFullEmptyView;
-	private View					mFullErrorButton;
-	private View					mFullErrorContainer;
-	private TextView				mFullErrorView;
-	private View					mFullProgress;
-	private boolean					mIsLoading	= false;
-	private int						mLastRowsCount;
-	private ListLineView			mLineProgress;
+	public final static byte			MODE_LIST_VIEW	= 0;
+	public final static byte			MODE_GRID_VIEW	= 1;
+	private HeaderFooterAbsListView		mCastedList;
+	private boolean						mFromBottom		= false;
+	private View						mFullEmptyContainer;
+	private TextView					mFullEmptyView;
+	private View						mFullErrorButton;
+	private View						mFullErrorContainer;
+	private TextView					mFullErrorView;
+	private View						mFullProgress;
+	private boolean						mIsLoading		= false;
+	private int							mLastRowsCount;
+	private ListLineView				mLineProgress;
 	@SuppressWarnings("unused")
-	private View					mListContainer;
-	private AbsListView				mListView;
-	private ListLineView			mLoadMoreContainer;
-	private TextView				mLoadMoreView;
-	private boolean					mNoMoreData	= false;
-	private PullToRefreshLayout		mPullToRefreshLayout;
-	private View					mView;
-	private ActionMode				mMode;
-	private ActionMode.Callback		mActionModeCallback;
+	private View						mListContainer;
+	private AbsListView					mListView;
+	private ListLineView				mLoadMoreContainer;
+	private TextView					mLoadMoreView;
+	private boolean						mNoMoreData		= false;
+	private PullToRefreshLayout			mPullToRefreshLayout;
+	private View						mView;
+	private ActionMode					mActionMode;
+	private ActionMode.Callback			mActionModeCallback;
+	private byte						mListMode		= MODE_LIST_VIEW;
+	private OnListItemClickListener		mOnListItemClickListener;
+	private OnListItemLongClickListener	mOnListItemLongClickListener;
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		mView = inflater.inflate(R.layout.list_content, container, false);
-		mListView = (AbsListView) mView.findViewById(android.R.id.list);
+		mView = inflater.inflate(R.layout.abs_list_content, container, false);
+		mPullToRefreshLayout = (PullToRefreshLayout) mView.findViewById(R.id.absPtrLayout);
+		PullToRefreshLayout.LayoutParams lp = new PullToRefreshLayout.LayoutParams(PullToRefreshLayout.LayoutParams.MATCH_PARENT, PullToRefreshLayout.LayoutParams.MATCH_PARENT);
+		switch (mListMode) {
+			case MODE_LIST_VIEW:
+				mListView = new ListView(getActivity());
+				((ListView) mListView).setDrawSelectorOnTop(false);
+				((ListView) mListView).setDividerHeight(0);
+				break;
+			case MODE_GRID_VIEW:
+				mListView = new GridView(getActivity());
+				((GridView) mListView).setGravity(Gravity.CENTER);
+				break;
+		}
+		mListView.setId(android.R.id.list);
+		mListView.setLayoutParams(lp);
+		lp.setViewDelegateClassName(AbsListViewDelegate.class.getName());
+		mPullToRefreshLayout.addView(mListView, 0, lp);
 		mCastedList = (HeaderFooterAbsListView) mListView;
-		mFullProgress = mView.findViewById(R.id.progressContainer);
-		mListContainer = mView.findViewById(R.id.listContainer);
-		mFullErrorContainer = mView.findViewById(R.id.internalError);
-		mFullErrorView = (TextView) mView.findViewById(R.id.internalErrorText);
-		mFullErrorButton = mView.findViewById(R.id.internalErrorButton);
-		mFullEmptyContainer = mView.findViewById(R.id.internalEmpty);
-		mFullEmptyView = (TextView) mView.findViewById(R.id.internalEmptyText);
+		mFullProgress = mView.findViewById(R.id.absProgressContainer);
+		mListContainer = mView.findViewById(R.id.absListContainer);
+		mFullErrorContainer = mView.findViewById(R.id.absInternalError);
+		mFullErrorView = (TextView) mView.findViewById(R.id.absInternalErrorText);
+		mFullErrorButton = mView.findViewById(R.id.absInternalErrorButton);
+		mFullEmptyContainer = mView.findViewById(R.id.absInternalEmpty);
+		mFullEmptyView = (TextView) mView.findViewById(R.id.absInternalEmptyText);
+		((TextView) mView.findViewById(R.id.absLoadingText)).setText(getLoadingText());
+		((Button) mFullErrorButton).setText(getTryAgainText());
+		((ImageView) mView.findViewById(R.id.absErrorIcon)).setImageDrawable(getErrorDrawable());
 		return mView;
 	}
 
-	@SuppressLint("NewApi")
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
@@ -87,11 +114,11 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		mLoadMoreContainer = new ListLineView(getActivity());
 		mLoadMoreView = new Button(getActivity());
 		mLoadMoreView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
-		mLoadMoreView.setText("Load more");
+		mLoadMoreView.setText(getLoadMoreText());
 		mLoadMoreView.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				loadData();
+				clear();
 			}
 		});
 		mLoadMoreContainer.addView(mLoadMoreView);
@@ -108,14 +135,13 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 		mListView.setEmptyView(mFullEmptyContainer);
 		((AdapterView<ListAdapter>) mListView).setAdapter(getAdapter());
-		mPullToRefreshLayout = (PullToRefreshLayout) mView.findViewById(R.id.ptr_layout);
-		int[] viewIds = new int[] { android.R.id.list, R.id.internalEmpty, R.id.internalError };
+		int[] viewIds = new int[] { android.R.id.list, R.id.absInternalEmpty, R.id.absInternalError };
 		ActionBarPullToRefresh.from(getActivity()).theseChildrenArePullable(viewIds).options(new Options.Builder().fromTop(!mFromBottom).build()).listener(this).setup(mPullToRefreshLayout);
 		mListView.setOnScrollListener(this);
 		mFullErrorButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				loadData();
+				clear();
 			}
 		});
 
@@ -140,25 +166,30 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		mLoadMoreView = null;
 		mPullToRefreshLayout = null;
 		mView = null;
-		mMode = null;
+		mActionMode = null;
 		mActionModeCallback = null;
 	}
 
 	@Override
-	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+	public final void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 		if (mCastedList.getChoiceMode() == ListView.CHOICE_MODE_MULTIPLE) {
-			if (mMode != null)
+			if (mActionMode != null)
 				if (getCheckedItemCount() == 0) {
-					mMode.finish();
+					mActionMode.finish();
 				} else {
-					mMode.invalidate();
+					mActionMode.invalidate();
 				}
+			return;
 		}
+		if (mOnListItemClickListener != null)
+			mOnListItemClickListener.onListItemClick(parent, view, position - mCastedList.getHeaderViewsCount(), id);
 	}
 
 	@Override
-	public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-		if (mMode != null || mActionModeCallback == null)
+	public final boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+		if (mOnListItemLongClickListener != null && mOnListItemLongClickListener.onListItemLongClick(parent, view, position - mCastedList.getHeaderViewsCount(), id))
+			return true;
+		if (mActionMode != null || mActionModeCallback == null)
 			return false;
 		mCastedList.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE);
 		ActionMode.Callback callback = new ActionMode.Callback() {
@@ -181,31 +212,37 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 			@Override
 			public void onDestroyActionMode(ActionMode mode) {
 				clearChoices();
-				mCastedList.setChoiceMode(ListView.CHOICE_MODE_NONE);
-				mMode = null;
+				mActionMode = null;
 				mActionModeCallback.onDestroyActionMode(mode);
 			}
 		};
-		mMode = ((SherlockFragmentActivity) getActivity()).startActionMode(callback);
 		mCastedList.setItemChecked(position, true);
+		mActionMode = ((SherlockFragmentActivity) getActivity()).startActionMode(callback);
 		return true;
 	}
 
 	protected void clearChoices() {
 		SparseBooleanArray positions = mCastedList.getCheckedItemPositions();
+		if (positions == null)
+			return;
 		for (int i = 0; i < positions.size(); i++) {
 			if (positions.valueAt(i))
 				mCastedList.setItemChecked(positions.keyAt(i), false);
 		}
+		mListView.clearChoices();
+		mListView.requestLayout();
+		mListView.post(new Runnable() {
+			@Override
+			public void run() {
+				mListView.setChoiceMode(AbsListView.CHOICE_MODE_NONE);
+
+			}
+		});
 	}
 
 	@Override
 	public void onRefreshStarted(View paramView) {
-		if (mMode != null)
-			mMode.finish();
-		onClear();
-		mNoMoreData = false;
-		notifyDataSetChanged();
+		clear();
 	}
 
 	@Override
@@ -221,6 +258,22 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 	}
 
+	public void clear() {
+		clearChoices();
+		if (mActionMode != null) {
+			mActionMode.finish();
+			mActionMode = null;
+		}
+		mListView.post(new Runnable() {
+			@Override
+			public void run() {
+				onClear();
+				notifyDataSetChanged();
+				mNoMoreData = false;
+			}
+		});
+	}
+
 	protected void finishLoading(Exception e) {
 		mIsLoading = false;
 		if (e != null) {
@@ -228,7 +281,10 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 			notifyDataSetChanged();
 			showError(e.getMessage());
 		} else if (getAdapter().getCount() == 0) {
-			showEmpty("Empty");
+			showEmpty(getEmptyText());
+		} else if (mLastRowsCount == getAdapter().getCount()) {
+			mNoMoreData = true;
+			showItems();
 		} else {
 			notifyDataSetChanged();
 			showItems();
@@ -242,6 +298,10 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 	public AbsListView getListView() {
 		return mListView;
+	}
+
+	public HeaderFooterAbsListView getCastedListView() {
+		return mCastedList;
 	}
 
 	private int getPreloadCount() {
@@ -387,5 +447,49 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 	public void setActionModeCallback(ActionMode.Callback actionModeCallback) {
 		if (actionModeCallback != null)
 			mActionModeCallback = actionModeCallback;
+	}
+
+	public byte getListMode() {
+		return mListMode;
+	}
+
+	public void setListMode(byte listMode) {
+		mListMode = listMode;
+	}
+
+	protected CharSequence getEmptyText() {
+		return "Empty";
+	}
+
+	protected CharSequence getLoadMoreText() {
+		return "Load More";
+	}
+
+	protected CharSequence getLoadingText() {
+		return "Loading";
+	}
+
+	protected CharSequence getTryAgainText() {
+		return "Try again";
+	}
+
+	protected Drawable getErrorDrawable() {
+		return null;
+	}
+
+	public void setOnListItemClickListener(OnListItemClickListener onListItemClickListener) {
+		mOnListItemClickListener = onListItemClickListener;
+	}
+
+	public void setOnListItemLongClickListener(OnListItemLongClickListener onListItemLongClickListener) {
+		mOnListItemLongClickListener = onListItemLongClickListener;
+	}
+
+	public static interface OnListItemClickListener {
+		public void onListItemClick(AdapterView<?> parent, View view, int position, long id);
+	}
+
+	public static interface OnListItemLongClickListener {
+		public boolean onListItemLongClick(AdapterView<?> parent, View view, int position, long id);
 	}
 }

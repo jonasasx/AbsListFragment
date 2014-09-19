@@ -21,7 +21,7 @@
     android:layout_height="match_parent" >
 
     <LinearLayout
-        android:id="@+id/progressContainer"
+        android:id="@+id/absProgressContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
@@ -34,33 +34,26 @@
             android:layout_height="wrap_content" />
 
         <TextView
+            android:id="@+id/absLoadingText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingTop="4dip"
             android:singleLine="true"
-            android:text="Loading"
             android:textAppearance="?android:attr/textAppearanceSmall" />
     </LinearLayout>
 
     <FrameLayout
-        android:id="@+id/listContainer"
+        android:id="@+id/absListContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent" >
 
         <uk.co.senab.actionbarpulltorefresh.extras.actionbarsherlock.PullToRefreshLayout
-            android:id="@+id/ptr_layout"
+            android:id="@+id/absPtrLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent" >
 
-            <com.jonasasx.list.views.ListView
-                android:id="@android:id/list"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:drawSelectorOnTop="false"
-                ptr:ptrViewDelegateClass="com.jonasasx.list.delegates.AbsListViewDelegate" />
-
             <FrameLayout
-                android:id="@+id/internalEmpty"
+                android:id="@+id/absInternalEmpty"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clickable="false"
@@ -71,7 +64,7 @@
                 ptr:ptrViewDelegateClass="com.jonasasx.list.delegates.FrameLayoutDelegate" >
 
                 <TextView
-                    android:id="@+id/internalEmptyText"
+                    android:id="@+id/absInternalEmptyText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
@@ -79,7 +72,7 @@
             </FrameLayout>
 
             <RelativeLayout
-                android:id="@+id/internalError"
+                android:id="@+id/absInternalError"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clickable="false"
@@ -89,7 +82,7 @@
                 ptr:ptrViewDelegateClass="com.jonasasx.list.delegates.FrameLayoutDelegate" >
 
                 <TextView
-                    android:id="@+id/internalErrorText"
+                    android:id="@+id/absInternalErrorText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_centerVertical="true"
@@ -98,18 +91,18 @@
                     android:textAppearance="?android:attr/textAppearanceLarge" />
 
                 <ImageView
-                    android:id="@+id/error_icon"
+                    android:id="@+id/absErrorIcon"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_above="@id/internalErrorText"
+                    android:layout_above="@id/absInternalErrorText"
                     android:layout_centerHorizontal="true"
                     android:layout_marginBottom="8dp" />
 
                 <Button
-                    android:id="@+id/internalErrorButton"
+                    android:id="@+id/absInternalErrorButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_below="@id/internalErrorText"
+                    android:layout_below="@id/absInternalErrorText"
                     android:layout_centerHorizontal="true"
                     android:layout_marginTop="8dp"
                     android:text="Try again" />
