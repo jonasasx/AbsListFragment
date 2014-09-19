@@ -94,6 +94,9 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		((TextView) mView.findViewById(R.id.absLoadingText)).setText(getLoadingText());
 		((Button) mFullErrorButton).setText(getTryAgainText());
 		((ImageView) mView.findViewById(R.id.absErrorIcon)).setImageDrawable(getErrorDrawable());
+
+		mFullEmptyView.setText(getEmptyText());
+		setEmptyView(mFullEmptyView);
 		return mView;
 	}
 
@@ -147,6 +150,7 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 		mListView.setOnItemLongClickListener(this);
 		mListView.setOnItemClickListener(this);
+
 	}
 
 	@Override
@@ -268,8 +272,8 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 			@Override
 			public void run() {
 				onClear();
-				notifyDataSetChanged();
 				mNoMoreData = false;
+				notifyDataSetChanged();
 			}
 		});
 	}
@@ -281,7 +285,7 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 			notifyDataSetChanged();
 			showError(e.getMessage());
 		} else if (getAdapter().getCount() == 0) {
-			showEmpty(getEmptyText());
+			showItems();
 		} else if (mLastRowsCount == getAdapter().getCount()) {
 			mNoMoreData = true;
 			showItems();
@@ -360,45 +364,43 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		mNoMoreData = true;
 	}
 
-	private void showEmpty(CharSequence text) {
-		showItems();
-		if (isEmpty()) {
-			mFullEmptyView.setText(text);
-			if (mFullEmptyContainer.getVisibility() != View.VISIBLE)
-				mFullEmptyContainer.setVisibility(View.VISIBLE);
-		}
+	private void showItems() {
+		mLineProgress.hide();
+		mLoadMoreContainer.hide();
+		setEmptyView(mFullEmptyContainer);
 	}
 
 	private void showError(CharSequence text) {
 		showItems();
 		if (isEmpty()) {
 			mFullErrorView.setText(text);
-			if (mFullErrorContainer.getVisibility() != View.VISIBLE)
-				mFullErrorContainer.setVisibility(View.VISIBLE);
+			setEmptyView(mFullErrorContainer);
 		} else {
 			mLoadMoreContainer.show();
 		}
 	}
 
-	private void showItems() {
-		if (mFullProgress.getVisibility() == View.VISIBLE)
-			mFullProgress.setVisibility(View.GONE);
-		mLineProgress.hide();
-		if (mFullErrorContainer.getVisibility() == View.VISIBLE)
-			mFullErrorContainer.setVisibility(View.GONE);
-		mLoadMoreContainer.hide();
-		if (mFullEmptyContainer.getVisibility() == View.VISIBLE)
-			mFullEmptyContainer.setVisibility(View.GONE);
-	}
-
 	private void showProgress() {
 		showItems();
 		if (isEmpty()) {
-			if (mFullProgress.getVisibility() != View.VISIBLE)
-				mFullProgress.setVisibility(View.VISIBLE);
+			setEmptyView(mFullProgress);
 		} else {
 			mLineProgress.show();
 		}
+	}
+
+	private void setEmptyView(View newView) {
+		if (newView == null)
+			return;
+		View view = mListView.getEmptyView();
+		if (view == newView)
+			return;
+		if (view != null && view.getVisibility() == View.VISIBLE)
+			view.setVisibility(View.GONE);
+		if (newView.getVisibility() != View.VISIBLE)
+			newView.setVisibility(View.VISIBLE);
+		mListView.setEmptyView(newView);
+
 	}
 
 	private static class KeepCheckedHelper {
