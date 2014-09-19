@@ -62,6 +62,7 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 	private byte						mListMode		= MODE_LIST_VIEW;
 	private OnListItemClickListener		mOnListItemClickListener;
 	private OnListItemLongClickListener	mOnListItemLongClickListener;
+	private boolean						mResumed		= false;
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -97,13 +98,15 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 		mFullEmptyView.setText(getEmptyText());
 		setEmptyView(mFullEmptyView);
+		mListView.setStackFromBottom(mFromBottom);
+		if (mFromBottom)
+			mListView.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
 		return mView;
 	}
 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		mListView.setStackFromBottom(mFromBottom);
 		mLineProgress = new ListLineView(getActivity());
 		ProgressBar progressView = new ProgressBar(getActivity());
 		progressView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
@@ -135,7 +138,6 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 			mCastedList.setHeaderDividersEnabled(false);
 		else
 			mCastedList.setFooterDividersEnabled(false);
-
 		mListView.setEmptyView(mFullEmptyContainer);
 		((AdapterView<ListAdapter>) mListView).setAdapter(getAdapter());
 		int[] viewIds = new int[] { android.R.id.list, R.id.absInternalEmpty, R.id.absInternalError };
@@ -150,7 +152,7 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 		mListView.setOnItemLongClickListener(this);
 		mListView.setOnItemClickListener(this);
-
+		loadData();
 	}
 
 	@Override
@@ -251,7 +253,7 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 	@Override
 	public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-		if (mIsLoading || mNoMoreData)
+		if (!mResumed || mIsLoading || mNoMoreData)
 			return;
 		if ((mFromBottom && firstVisibleItem <= getPreloadCount()) || (!mFromBottom && (firstVisibleItem + visibleItemCount) >= getAdapter().getCount() - getPreloadCount()) || getPreloadCount() == 0)
 			loadData();
@@ -296,6 +298,13 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		if (mPullToRefreshLayout.isRefreshing())
 			mPullToRefreshLayout.setRefreshComplete();
 		onLoadingFinished();
+		if (mLastRowsCount == 0 && mFromBottom)
+			mListView.post(new Runnable() {
+				@Override
+				public void run() {
+					mListView.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_NORMAL);
+				}
+			});
 	}
 
 	protected abstract BaseAdapter getAdapter();
@@ -325,11 +334,13 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		showProgress();
 		mIsLoading = true;
 		mLastRowsCount = getAdapter().getCount();
+		if (mLastRowsCount == 0 && mFromBottom)
+			mListView.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
 		onLoadingStarted();
 	}
 
 	private void notifyDataSetChanged() {
-		if (mFromBottom && !isEmpty()) {
+		if (mFromBottom && !isEmpty() && mLastRowsCount > 0) {
 			final int firstVisPos = mListView.getLastVisiblePosition();
 			View firstVisView = mListView.getChildAt(mListView.getChildCount() - 1);
 			final int top = ((firstVisView == null || firstVisView instanceof ListLineView) ? 0 : firstVisView.getTop()) - mListView.getPaddingTop();
@@ -493,5 +504,17 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 	public static interface OnListItemLongClickListener {
 		public boolean onListItemLongClick(AdapterView<?> parent, View view, int position, long id);
+	}
+
+	@Override
+	public void onPause() {
+		super.onPause();
+		mResumed = false;
+	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		mResumed = true;
 	}
 }
