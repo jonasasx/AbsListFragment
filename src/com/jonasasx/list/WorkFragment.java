@@ -80,17 +80,7 @@ public class WorkFragment extends AbsListFragment implements Callback {
 			public void run() {
 				if (!WorkFragment.this.isResumed())
 					return;
-				synchronized (mDataList) {
-					if (n > 30) {
-						setNoMoreData();
-						finishLoading(null);
-						return;
-					}
-					for (int i = 0; i < 10; i++)
-						mDataList.add("Line ___" + Integer.toString(n++) + "___");
-
-					finishLoading(null);
-				}
+				finishLoading(new Exception());
 			}
 		}, 2000);
 	}

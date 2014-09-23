@@ -124,7 +124,7 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		mLoadMoreView.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				clear();
+				loadData();
 			}
 		});
 		mLoadMoreContainer.addView(mLoadMoreView);
@@ -152,7 +152,8 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 
 		mListView.setOnItemLongClickListener(this);
 		mListView.setOnItemClickListener(this);
-		loadData();
+		if (!mNoMoreData)
+			loadData();
 	}
 
 	@Override
