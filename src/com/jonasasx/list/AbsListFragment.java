@@ -97,7 +97,6 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		((ImageView) mView.findViewById(R.id.absErrorIcon)).setImageDrawable(getErrorDrawable());
 
 		mFullEmptyView.setText(getEmptyText());
-		setEmptyView(mFullEmptyView);
 		mListView.setStackFromBottom(mFromBottom);
 		if (mFromBottom)
 			mListView.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
@@ -109,7 +108,8 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		super.onActivityCreated(savedInstanceState);
 		mLineProgress = new ListLineView(getActivity());
 		ProgressBar progressView = new ProgressBar(getActivity());
-		progressView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+		progressView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+		((FrameLayout.LayoutParams) progressView.getLayoutParams()).gravity = Gravity.CENTER;
 		mLineProgress.addView(progressView);
 		mLineProgress.setLayoutParams(new AbsListView.LayoutParams(AbsListView.LayoutParams.MATCH_PARENT, AbsListView.LayoutParams.WRAP_CONTENT));
 		if (mFromBottom)
@@ -120,6 +120,7 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 		mLoadMoreContainer = new ListLineView(getActivity());
 		mLoadMoreView = new Button(getActivity());
 		mLoadMoreView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+		((FrameLayout.LayoutParams) mLoadMoreView.getLayoutParams()).gravity = Gravity.CENTER;
 		mLoadMoreView.setText(getLoadMoreText());
 		mLoadMoreView.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -138,7 +139,7 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 			mCastedList.setHeaderDividersEnabled(false);
 		else
 			mCastedList.setFooterDividersEnabled(false);
-		mListView.setEmptyView(mFullEmptyContainer);
+		showItems();
 		((AdapterView<ListAdapter>) mListView).setAdapter(getAdapter());
 		int[] viewIds = new int[] { android.R.id.list, R.id.absInternalEmpty, R.id.absInternalError };
 		ActionBarPullToRefresh.from(getActivity()).theseChildrenArePullable(viewIds).options(new Options.Builder().fromTop(!mFromBottom).build()).listener(this).setup(mPullToRefreshLayout);
@@ -229,6 +230,8 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 	}
 
 	protected void clearChoices() {
+		if (mCastedList == null || mListView == null)
+			return;
 		SparseBooleanArray positions = mCastedList.getCheckedItemPositions();
 		if (positions == null)
 			return;
@@ -236,13 +239,12 @@ abstract public class AbsListFragment extends SherlockFragment implements OnRefr
 			if (positions.valueAt(i))
 				mCastedList.setItemChecked(positions.keyAt(i), false);
 		}
-		mListView.clearChoices();
+		mCastedList.clearChoices();
 		mListView.requestLayout();
 		mListView.post(new Runnable() {
 			@Override
 			public void run() {
-				mListView.setChoiceMode(AbsListView.CHOICE_MODE_NONE);
-
+				mCastedList.setChoiceMode(AbsListView.CHOICE_MODE_NONE);
 			}
 		});
 	}

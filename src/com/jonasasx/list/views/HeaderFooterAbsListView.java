@@ -37,4 +37,6 @@ public interface HeaderFooterAbsListView {
 	public SparseBooleanArray getCheckedItemPositions();
 
 	public int getChoiceMode();
+
+	public void clearChoices();
 }
